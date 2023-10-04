@@ -82,4 +82,3 @@ class PacmanAgent(Agent):
             for successor, action in current.generatePacmanSuccessors():
                 fringe.push((successor, path + [action]))
 
-        return path
