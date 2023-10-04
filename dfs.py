@@ -14,7 +14,10 @@ def key(state):
 
     return (
         state.getPacmanPosition(),
-        # ...
+        tuple(state.getGhostPositions()),
+        tuple(state.getCapsules()),
+        state.getFood(),
+        # state.getPacmanState().getDirection()
     )
 
 
