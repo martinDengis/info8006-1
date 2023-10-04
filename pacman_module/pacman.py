@@ -122,7 +122,7 @@ class GameState:
             return True
 
         if agentIndex == 0:  # Pacman is moving
-          state.getPacmanPositio          return action in PacmanRules.getLegalActions(self)
+            return action in PacmanRules.getLegalActions(self)
         else:
             return action in GhostRules.getLegalActions(self, agentIndex)
 

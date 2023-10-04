@@ -14,7 +14,7 @@ def key(state):
 
     return (
         state.getPacmanPosition(),
-        state.getPacmanState().direction,
+        state.getPacmanState().getDirection(),
         state.getGhostPositions(),
         state.getCapsules(),
         state.getFood(),
