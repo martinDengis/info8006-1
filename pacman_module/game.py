@@ -67,6 +67,8 @@ class Directions:
     WEST = 'West'
     STOP = 'Stop'
 
+    # Dictionary that maps each direction to the direction that Pac-Man would turn if he turned left. 
+    # For example, if Pac-Man is facing north and turns left, he will be facing west.
     LEFT = {NORTH: WEST,
             SOUTH: EAST,
             EAST: NORTH,
