@@ -45,6 +45,11 @@ def heuristic(state):
 
     # Transform grid into list of coordinates (x, y) for True values
     goal_list = state.getFood().asList()
+
+    # If there is no food left, heuristic is 0
+    if len(goal_list) == 0:
+        return 0
+    
     for goal_position in goal_list:
         h_cost = manhattan_distance(pacman_position, goal_position)
         if h_cost < min_h_cost:
@@ -99,9 +104,7 @@ class PacmanAgent(Agent):
                     return []
 
                 priority, item = fringe.pop()
-                print(priority)
                 current, path = item
-
 
                 if current.isWin():
                     return path
@@ -117,7 +120,7 @@ class PacmanAgent(Agent):
                     g_cost = len(path) + 1
                     
                     # Evaluation function f(n) = g(n) + h(n)
-                    f_cost = g_cost + heuristic(state)
+                    f_cost = g_cost + heuristic(successor)
 
                     # Pushing into priority queue a tuple (state, path) and the f_cost
                     fringe.push((successor, path + [action]), f_cost)
