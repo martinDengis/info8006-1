@@ -1,5 +1,5 @@
-from pacman_module.game import Agent, Directions
 from pacman_module.util import Queue
+from pacman_module.game import Agent, Directions
 
 
 def key(state):
@@ -17,7 +17,6 @@ def key(state):
         tuple(state.getGhostPositions()),
         tuple(state.getCapsules()),
         state.getFood(),
-        # state.getPacmanState().getDirection()
     )
 
 
@@ -81,4 +80,3 @@ class PacmanAgent(Agent):
 
             for successor, action in current.generatePacmanSuccessors():
                 fringe.push((successor, path + [action]))
-
