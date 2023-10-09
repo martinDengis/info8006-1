@@ -1,4 +1,5 @@
 from pacman_module.game import Agent, Directions
+from pacman_module.util import manhattanDistance
 import heapq  # For using a priority queue (heap)
 
 def key(state):
@@ -20,27 +21,35 @@ def key(state):
     )
 
 def heuristic(state):
-    """
-    Calculate the Manhattan distance from Pacman's position to the nearest food.
+    # Initialize score to current game score
+    score = state.getScore()
 
-    Arguments:
-        state: a game state. See API or class `pacman.GameState`.
+    # Get current position
+    pos = state.getPacmanPosition()
 
-    Returns:
-        An integer representing the heuristic value.
-    """
-    pacManPosition = state.getPacmanPosition()
-    foodGrid = state.getFood()
-    foodPositions = foodGrid.asList()  # Get the coordinates of all food pieces
-    
-    # If there is no food left, heuristic is 0
-    if len(foodPositions) == 0:
-        return 0
-    
-    # Calculate the Manhattan distance to the closest food
-    closestFoodDist = min(abs(x1 - x2) + abs(y1 - y2) for x1, y1 in [pacManPosition] for x2, y2 in foodPositions)
-    
-    return closestFoodDist
+    # Consider food dots
+    foodList = state.getFood().asList()
+    closestFoodDist = float('inf')
+
+    if foodList:
+        # Find distance to closest food dot
+        closestFoodDist = min([manhattanDistance(pos, food) for food in foodList])
+        # Add number of remaining food dots times 10 from score
+        # Subtract distance to closest food dot from score
+        score -= 10 * len(foodList) + closestFoodDist
+
+    # Consider capsules
+    capsuleList = state.getCapsules()
+    if capsuleList:
+        # Find distance to closest capsule
+        closestCapsuleDist = min([manhattanDistance(pos, capsule) for capsule in capsuleList])
+        # Check if a capsule is on the shortest path to the nearest food dot
+        if closestCapsuleDist <= closestFoodDist:
+            # Subtract number of remaining capsules times 5 from score
+            # Subtract distance to closest capsule from score
+            score += 5 * len(capsuleList) + closestCapsuleDist
+        
+    return -score  # Return negative because we want to maximize score
 
 class PacmanAgent(Agent):
     def __init__(self):
