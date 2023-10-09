@@ -34,24 +34,40 @@ def manhattan_distance(point_a, point_b):
 
 
 def heuristic(state):
+    """Returns h_cost (heuristic cost) to the closest food dot.
+
+    Arguments:
+        state: a game state. See API or class `pacman.GameState`.
+
+    Returns:
+        The lowest heuristic cost from PacMan to all remaining food dots.
+    """
+
+    # If there is no food left, heuristic is 0
     if state.getNumFood() == 0:
         return 0
     
+    min_h_cost = float('inf')
     pacman_position = state.getPacmanPosition()
-    unvisited_food = state.getFood().asList()
-    capsules = state.getCapsules()
 
-    # Calculate the distance to the nearest unvisited food dot
-    nearest_food_dist = min(manhattan_distance(pacman_position, food_pos) for food_pos in unvisited_food)
+    # Transform grid into list of coordinates (x, y) for True values
+    goal_list = state.getFood().asList()
+    capsule_list = state.getCapsules()
+    walls = state.getWalls().asList()
 
-    # Calculate the distance to the nearest capsule
-    nearest_capsule_dist = min(manhattan_distance(pacman_position, capsule_pos) for capsule_pos in capsules)
+    for goal_position in goal_list:
+        h_cost = manhattan_distance(pacman_position, goal_position)
 
-    # Combine both distances to get the heuristic value
-    heuristic_value = nearest_food_dist + nearest_capsule_dist
+        # Check if passing through a capsule is required to reach the goal
+        for capsule_position in capsule_list:
+            if manhattan_distance(pacman_position, capsule_position) + manhattan_distance(capsule_position, goal_position) <= h_cost:
+                # Add a penalty for passing through a capsule
+                h_cost += 10
 
-    return heuristic_value
+        if h_cost < min_h_cost:
+            min_h_cost = h_cost
 
+    return min_h_cost
 
 
 class PacmanAgent(Agent):
@@ -81,12 +97,20 @@ class PacmanAgent(Agent):
             return Directions.STOP
 
     def a_star(self, state):
+        """Given a Pacman game state, returns a list of legal moves to solve
+        the search layout.
+
+        Arguments:
+            state: a game state. See API or class `pacman.GameState`.
+
+        Returns:
+            A list of legal moves.
+        """
+
         path = []
         fringe = PriorityQueue()
-        fringe.push((state, path), 0)  # Start with a heuristic cost of 0
+        fringe.push((state, path), heuristic(state))
         closed = set()
-        unvisited_food = state.getFood().asList()  # Get all unvisited food dots
-
 
         while True:
             if fringe.isEmpty():
@@ -108,10 +132,8 @@ class PacmanAgent(Agent):
             for successor, action in current.generatePacmanSuccessors():
                 g_cost = len(path) + 1
                 
-                # Calculate the heuristic dynamically to the nearest unvisited food dot and nearest capsule
-                nearest_food_dist = min(manhattan_distance(successor.getPacmanPosition(), food_pos) for food_pos in unvisited_food)
-                nearest_capsule_dist = min(manhattan_distance(successor.getPacmanPosition(), capsule_pos) for capsule_pos in state.getCapsules())
-                f_cost = g_cost + nearest_food_dist + nearest_capsule_dist
+                # Evaluation function f(n) = g(n) + h(n)
+                f_cost = g_cost + heuristic(successor)
 
                 # Pushing into priority queue a tuple (state, path) and the f_cost
                 fringe.push((successor, path + [action]), f_cost)
