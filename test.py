@@ -36,28 +36,11 @@ def heuristic(state):
     remaining_cost = (
         5 * state.getNumFood() +  # Eating food dots is undesirable (for remaining cost), so we use a positive weight
         -5 * len(state.getCapsules()) +  # Eating capsules is desirable, so we use a negative weight
-        - to_closest_food_dot(pacman_position, food_positions)
+        - 1 * to_closest_food_dot(pacman_position, food_positions)
     )
 
     return remaining_cost
 
-def to_furthest_food_dot(pacman_position: tuple, food_positions: list):
-    if not food_positions:
-        return 0
-    
-    if len(food_positions) == 1:
-        return manhattanDistance(pacman_position, food_positions[0])
-    
-    max_distance = float('-inf')
-    max_index = 0
-    for i, item in enumerate(food_positions):
-        dist = manhattanDistance(pacman_position, item)
-        if dist > max_distance:
-            max_distance = dist
-            max_index = i
-
-    new_pacman_position = food_positions.pop(max_index)
-    return max_distance + to_furthest_food_dot(new_pacman_position, food_positions)
 
 def to_closest_food_dot(pacman_position: tuple, food_positions: list):
     if not food_positions:
@@ -76,6 +59,24 @@ def to_closest_food_dot(pacman_position: tuple, food_positions: list):
 
     new_pacman_position = food_positions.pop(min_index)
     return min_distance + to_closest_food_dot(new_pacman_position, food_positions)
+
+# def to_furthest_food_dot(pacman_position: tuple, food_positions: list):
+#     if not food_positions:
+#         return 0
+    
+#     if len(food_positions) == 1:
+#         return manhattanDistance(pacman_position, food_positions[0])
+    
+#     max_distance = float('-inf')
+#     max_index = 0
+#     for i, item in enumerate(food_positions):
+#         dist = manhattanDistance(pacman_position, item)
+#         if dist > max_distance:
+#             max_distance = dist
+#             max_index = i
+
+#     new_pacman_position = food_positions.pop(max_index)
+#     return max_distance + to_furthest_food_dot(new_pacman_position, food_positions)
 
 """ Iterative function """
 # def to_furthest_food_dot(pacman_position: tuple, food_positions: list):

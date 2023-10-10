@@ -1,4 +1,4 @@
-from pacman_module.util import PriorityQueue
+from pacman_module.util import PriorityQueue, manhattanDistance
 from pacman_module.game import Agent, Directions
 
 
@@ -20,45 +20,45 @@ def key(state):
     )
 
 
-def manhattan_distance(point_a, point_b):
-    """Returns the Manhattan distance between two points.
-
-    Arguments:
-        point_a: a tuple (x, y) indicating the start position.
-        point_b: a tuple (x, y) indicating the goal position.
-
-    Returns:
-        The Manhattan distance between point A to point B.
-    """
-    return abs(point_a[0] - point_b[0]) + abs(point_a[1] - point_b[1])
-
-
 def heuristic(state):
-    """Returns h_cost (heuristic cost) to the closest food dot.
+    """ This function should aim at minimizing the remaining cost of the game.
+    => Check remaining_cost estimate"""
+    if state.isWin():
+        return 0  # If the game is won, no remaining cost
 
-    Arguments:
-        state: a game state. See API or class `pacman.GameState`.
+    if state.isLose():
+        return float('inf')  # If the game is lost, return positive infinity as heuristic (maximum cost)
 
-    Returns:
-        The lowest heuristic cost from PacMan to all remaining food dots.
-    """
+    pacman_position = state.getPacmanPosition()
+    food_positions = state.getFood().asList()
 
-    # If there is no food left, heuristic is 0
-    if state.getNumFood() == 0:
+    # Calculate the remaining cost based on the provided scoring rules : Goal is to MINIMIZE the remaining cost
+    remaining_cost = (
+        5 * state.getNumFood() +  # Eating food dots is undesirable (for remaining cost), so we use a positive weight
+        -5 * len(state.getCapsules()) +  # Eating capsules is desirable, so we use a negative weight
+        - 1 * to_closest_food_dot(pacman_position, food_positions)
+    )
+
+    return remaining_cost
+
+
+def to_closest_food_dot(pacman_position: tuple, food_positions: list):
+    if not food_positions:
         return 0
     
-    min_h_cost = float('inf')
-    pacman_position = state.getPacmanPosition()
+    if len(food_positions) == 1:
+        return manhattanDistance(pacman_position, food_positions[0])
+    
+    min_distance = float('inf')
+    min_index = 0
+    for i, item in enumerate(food_positions):
+        dist = manhattanDistance(pacman_position, item)
+        if dist < min_distance:
+            min_distance = dist
+            min_index = i
 
-    # Transform grid into list of coordinates (x, y) for True values
-    goal_list = state.getFood().asList()
-
-    for goal_position in goal_list:
-        h_cost = manhattan_distance(pacman_position, goal_position)
-        if h_cost < min_h_cost:
-            min_h_cost = h_cost
-
-    return min_h_cost
+    new_pacman_position = food_positions.pop(min_index)
+    return min_distance + to_closest_food_dot(new_pacman_position, food_positions)
 
 
 class PacmanAgent(Agent):
@@ -111,6 +111,7 @@ class PacmanAgent(Agent):
             current, path = item
 
             if current.isWin():
+                # print(path)
                 return path
 
             current_key = key(current)
