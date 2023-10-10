@@ -27,15 +27,18 @@ def heuristic(state):
         return 0  # If the game is won, no remaining cost
 
     if state.isLose():
-        return float('inf')  # If the game is lost, return positive infinity as heuristic (maximum cost)
+        # If game lost, return infinity as heuristic (maximum cost)
+        return float('inf')
 
     pacman_position = state.getPacmanPosition()
     food_positions = state.getFood().asList()
 
-    # Calculate the remaining cost based on the provided scoring rules : Goal is to MINIMIZE the remaining cost
+    # Calculate remaining cost : Goal = MINIMIZE remaining cost
     remaining_cost = (
-        5 * state.getNumFood() +  # Eating food dots is undesirable (for remaining cost), so we use a positive weight
-        -5 * len(state.getCapsules()) +  # Eating capsules is desirable, so we use a negative weight
+        # Eating food dots is undesirable, so we use a positive weight
+        5 * state.getNumFood() +
+        # Eating capsules is desirable, so we use a negative weight
+        -5 * len(state.getCapsules()) +
         - 1 * to_closest_food_dot(pacman_position, food_positions)
     )
 
@@ -45,10 +48,10 @@ def heuristic(state):
 def to_closest_food_dot(pacman_position: tuple, food_positions: list):
     if not food_positions:
         return 0
-    
+
     if len(food_positions) == 1:
         return manhattanDistance(pacman_position, food_positions[0])
-    
+
     min_distance = float('inf')
     min_index = 0
     for i, item in enumerate(food_positions):
@@ -57,8 +60,8 @@ def to_closest_food_dot(pacman_position: tuple, food_positions: list):
             min_distance = dist
             min_index = i
 
-    new_pacman_position = food_positions.pop(min_index)
-    return min_distance + to_closest_food_dot(new_pacman_position, food_positions)
+    new_pacman_pos = food_positions.pop(min_index)
+    return min_distance + to_closest_food_dot(new_pacman_pos, food_positions)
 
 
 class PacmanAgent(Agent):
@@ -123,11 +126,11 @@ class PacmanAgent(Agent):
 
             for successor, action in current.generatePacmanSuccessors():
                 g_cost = len(path) + 1
-                
+
                 # Evaluation function f(n) = g(n) + h(n)
                 f_cost = g_cost + heuristic(successor)
 
-                # Pushing into priority queue a tuple (state, path) and the f_cost
+                # Pushing into priority queue a tuple (state, path) and f_cost
                 fringe.push((successor, path + [action]), f_cost)
 
         return path
