@@ -1,6 +1,8 @@
 from pacman_module.game import Agent, Directions
 from pacman_module.util import manhattanDistance
 import heapq  # For using a priority queue (heap)
+import networkx as nx
+
 
 def key(state):
     """Returns a key that uniquely identifies a Pacman game state.
@@ -20,36 +22,68 @@ def key(state):
         # state.getPacmanState().getDirection()
     )
 
-def heuristic(state):
-    # Initialize score to current game score
-    score = state.getScore()
+# def heuristic(state):
+#     # Initialize score to current game score
+#     score = state.getScore()
 
+#     # Get current position
+#     pos = state.getPacmanPosition()
+
+#     # Consider food dots
+#     foodList = state.getFood().asList()
+#     closestFoodDist = float('inf')
+
+#     if foodList:
+#         # Find distance to closest food dot
+#         closestFoodDist = min([manhattanDistance(pos, food) for food in foodList])
+#         # Add number of remaining food dots times 10 from score
+#         # Subtract distance to closest food dot from score
+#         score -= 10 * len(foodList) + closestFoodDist
+
+#     # Consider capsules
+#     capsuleList = state.getCapsules()
+#     if capsuleList:
+#         # Find distance to closest capsule
+#         closestCapsuleDist = min([manhattanDistance(pos, capsule) for capsule in capsuleList])
+#         # Check if a capsule is on the shortest path to the nearest food dot
+#         if closestCapsuleDist <= closestFoodDist:
+#             # Subtract number of remaining capsules times 5 from score
+#             # Subtract distance to closest capsule from score
+#             score += 5 * len(capsuleList) + closestCapsuleDist
+        
+#     return -score  # Return negative because we want to maximize score
+
+def mst_heuristic(state):
     # Get current position
     pos = state.getPacmanPosition()
 
     # Consider food dots
     foodList = state.getFood().asList()
-    closestFoodDist = float('inf')
 
-    if foodList:
-        # Find distance to closest food dot
-        closestFoodDist = min([manhattanDistance(pos, food) for food in foodList])
-        # Add number of remaining food dots times 10 from score
-        # Subtract distance to closest food dot from score
-        score -= 10 * len(foodList) + closestFoodDist
+    # Create a graph with food dots as nodes and Manhattan distances as edges
+    G = nx.Graph()
+    for i in range(len(foodList)):
+        for j in range(i+1, len(foodList)):
+            dist = manhattanDistance(foodList[i], foodList[j])
+            G.add_edge(i, j, weight=dist)
+
+    # Calculate Minimum Spanning Tree (MST)
+    mst = nx.minimum_spanning_tree(G)
+
+    # Use total weight of MST as heuristic
+    heuristic = sum([data['weight'] for (_, _, data) in mst.edges(data=True)])
 
     # Consider capsules
     capsuleList = state.getCapsules()
     if capsuleList:
         # Find distance to closest capsule
         closestCapsuleDist = min([manhattanDistance(pos, capsule) for capsule in capsuleList])
-        # Check if a capsule is on the shortest path to the nearest food dot
-        if closestCapsuleDist <= closestFoodDist:
-            # Subtract number of remaining capsules times 5 from score
-            # Subtract distance to closest capsule from score
-            score += 5 * len(capsuleList) + closestCapsuleDist
-        
-    return -score  # Return negative because we want to maximize score
+        # Subtract 5 from heuristic for each remaining capsule
+        heuristic -= 5 * len(capsuleList)
+
+    return heuristic
+
+
 
 class PacmanAgent(Agent):
     def __init__(self):
@@ -79,7 +113,7 @@ class PacmanAgent(Agent):
         fringe = []  # Fringe to store the nodes to explore (using heapq to keep it ordered)
         # Heapq uses the first element of the tuple for ordering. 
         # Our tuple: (f, g, counter, state, path) where f = g + heuristic(state)
-        heapq.heappush(fringe, (0 + heuristic(state), 0, 0, state, path))  # (f, g, counter, state, path)
+        heapq.heappush(fringe, (0 + mst_heuristic(state), 0, 0, state, path))  # (f, g, counter, state, path)
         closed = set()  # Set to store explored nodes
         counter = 0  # Counter to avoid comparing GameState instances
 
@@ -104,6 +138,6 @@ class PacmanAgent(Agent):
                 new_g = g + 1  # Increment cost so far
                 counter += 1  # Increment counter
                 # Add successor to fringe with updated costs and path
-                heapq.heappush(fringe, (new_g + heuristic(successor), new_g, counter, successor, new_path))
+                heapq.heappush(fringe, (new_g + mst_heuristic(successor), new_g, counter, successor, new_path))
 
         return path
