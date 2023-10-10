@@ -20,40 +20,7 @@ def key(state):
     )
 
 
-# def heuristic(state):
-#     """Returns h_cost (heuristic cost) to the closest food dot.
-
-#     Arguments:
-#         state: a game state. See API or class `pacman.GameState`.
-
-#     Returns:
-#         The lowest heuristic cost from PacMan to all remaining food dots.
-#     """
-
-#     # If there is no food left, heuristic is 0
-#     if state.getNumFood() == 0:
-#         return 0
-    
-#     min_h_cost = float('inf')
-#     pacman_position = state.getPacmanPosition()
-
-#     # Transform grid into list of coordinates (x, y) for True values
-#     goal_list = state.getFood().asList()
-#     capsule_list = state.getCapsules()
-
-#     for goal_position in goal_list:
-#         h_cost = manhattanDistance(pacman_position, goal_position)
-#         for capsule_position in capsule_list:
-#             if manhattanDistance(pacman_position, capsule_position) + manhattanDistance(capsule_position, goal_position) <= h_cost:
-#                 # Add a penalty for passing through a capsule
-#                 h_cost += 100  # Set the penalty value to 5
-
-#         if h_cost < min_h_cost:
-#             min_h_cost = h_cost
-
-#     return min_h_cost
-
-def heuristic(state, path):
+def heuristic(state):
     """ This function should aim at minimizing the remaining cost of the game.
     => Check remaining_cost estimate"""
     if state.isWin():
@@ -62,13 +29,14 @@ def heuristic(state, path):
     if state.isLose():
         return float('inf')  # If the game is lost, return positive infinity as heuristic (maximum cost)
 
+    pacman_position = state.getPacmanPosition()
     food_positions = state.getFood().asList()
 
-    # Calculate the remaining cost based on the provided scoring rules
+    # Calculate the remaining cost based on the provided scoring rules : Goal is to MINIMIZE the remaining cost
     remaining_cost = (
-        -10 * state.getNumFood() +  # Eating food dots is desirable, so we use a negative weight
-        5 * len(state.getCapsules()) +  # Eating capsules is undesirable, so we use a positive weight
-        to_furthest_food_dot(state.getPacmanPosition(), food_positions)
+        5 * state.getNumFood() +  # Eating food dots is undesirable (for remaining cost), so we use a positive weight
+        -5 * len(state.getCapsules()) +  # Eating capsules is desirable, so we use a negative weight
+        - to_closest_food_dot(pacman_position, food_positions)
     )
 
     return remaining_cost
@@ -82,14 +50,52 @@ def to_furthest_food_dot(pacman_position: tuple, food_positions: list):
     
     max_distance = float('-inf')
     max_index = 0
-    for i in range(len(food_positions)):
-        dist = manhattanDistance(pacman_position, food_positions[i])
+    for i, item in enumerate(food_positions):
+        dist = manhattanDistance(pacman_position, item)
         if dist > max_distance:
             max_distance = dist
             max_index = i
 
     new_pacman_position = food_positions.pop(max_index)
     return max_distance + to_furthest_food_dot(new_pacman_position, food_positions)
+
+def to_closest_food_dot(pacman_position: tuple, food_positions: list):
+    if not food_positions:
+        return 0
+    
+    if len(food_positions) == 1:
+        return manhattanDistance(pacman_position, food_positions[0])
+    
+    min_distance = float('inf')
+    min_index = 0
+    for i, item in enumerate(food_positions):
+        dist = manhattanDistance(pacman_position, item)
+        if dist < min_distance:
+            min_distance = dist
+            min_index = i
+
+    new_pacman_position = food_positions.pop(min_index)
+    return min_distance + to_closest_food_dot(new_pacman_position, food_positions)
+
+""" Iterative function """
+# def to_furthest_food_dot(pacman_position: tuple, food_positions: list):
+#     total_distance = 0
+    
+#     while food_positions:
+#         max_distance = float('-inf')
+#         max_index = None
+        
+#         for i, food_position in enumerate(food_positions):
+#             dist = manhattanDistance(pacman_position, food_position)
+#             if dist > max_distance:
+#                 max_distance = dist
+#                 max_index = i
+        
+#         if max_index is not None:
+#             total_distance += max_distance
+#             pacman_position = food_positions.pop(max_index)
+    
+#     return total_distance
 
 
 class PacmanAgent(Agent):
@@ -131,7 +137,7 @@ class PacmanAgent(Agent):
 
         path = []
         fringe = PriorityQueue()
-        fringe.push((state, path), heuristic(state, path))
+        fringe.push((state, path), heuristic(state))
         closed = set()
 
         while True:
@@ -156,7 +162,7 @@ class PacmanAgent(Agent):
                 g_cost = len(path) + 1
                 
                 # Evaluation function f(n) = g(n) + h(n)
-                f_cost = g_cost + heuristic(successor, path)
+                f_cost = g_cost + heuristic(successor)
 
                 # Pushing into priority queue a tuple (state, path) and the f_cost
                 fringe.push((successor, path + [action]), f_cost)
