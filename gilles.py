@@ -1,7 +1,5 @@
 from pacman_module.game import Agent, Directions
 from pacman_module.util import PriorityQueue, manhattanDistance
-import heapq  # For using a priority queue (heap)
-import networkx as nx
 
 
 def key(state):
@@ -22,41 +20,22 @@ def key(state):
         # state.getPacmanState().getDirection()
     )
 
-# def heuristic(state):
-#     # Get current position
-#     pos = state.getPacmanPosition()
-
-#     # Consider food dots
-#     foodList = state.getFood().asList()
-
-#     # Create a graph with food dots as nodes and Manhattan distances as edges
-#     G = nx.Graph()
-#     for i in range(len(foodList)):
-#         for j in range(i+1, len(foodList)):
-#             dist = manhattanDistance(foodList[i], foodList[j])
-#             G.add_edge(i, j, weight=dist)
-
-#     # Calculate Minimum Spanning Tree (MST)
-#     mst = nx.minimum_spanning_tree(G)
-
-#     # Use total weight of MST as heuristic
-#     heuristic = sum([data['weight'] for (_, _, data) in mst.edges(data=True)])
-
-#     # Consider capsules
-#     capsuleList = state.getCapsules()
-#     if capsuleList:
-#         # Find distance to closest capsule
-#         closestCapsuleDist = min([manhattanDistance(pos, capsule) for capsule in capsuleList])
-#         # Subtract 5 from heuristic for each remaining capsule
-#         heuristic -= 5 * len(capsuleList)
-
-#     return heuristic
 
 def heuristic(state):
-    # Initialize score to current game score
-    score = state.getScore()
+    """Computes the heuristic score for a given game state.
 
-    # Get current position
+    The score is calculated based on the current game score,the distance to
+    the closest food dot, and the distance to the closest capsule. The number
+    of remaining food dots and capsules are also considered.
+
+    Arguments:
+        state: The current game state.
+
+    Returns:
+        The negative of the calculated score. A higher score is better.
+    """
+
+    score = state.getScore()
     pos = state.getPacmanPosition()
 
     # Consider food dots
@@ -64,23 +43,25 @@ def heuristic(state):
     closestFoodDist = float('inf')
 
     if foodList:
-        # Find distance to closest food dot
-        closestFoodDist = min([manhattanDistance(pos, food) for food in foodList])
-        # Add number of remaining food dots times 10 from score
-        # Subtract distance to closest food dot from score
+        # Find distance to closest food dot based on the Manhattan Distance
+        closestFoodDist = min(
+            [manhattanDistance(pos, food) for food in foodList]
+            )
         score += 10 * len(foodList)
 
     # Consider capsules
     capsuleList = state.getCapsules()
     if capsuleList:
-        # Find distance to closest capsule
-        closestCapsuleDist = min([manhattanDistance(pos, capsule) for capsule in capsuleList])
+        # Find distance to closest capsule based on the Manhattan Distance
+        closestCapsuleDist = min(
+            [manhattanDistance(pos, capsule) for capsule in capsuleList]
+        )
         # Check if a capsule is on the shortest path to the nearest food dot
         if closestCapsuleDist <= closestFoodDist:
-            # Subtract number of remaining capsules times 5 from score
+            # Reduce the score to make sure the final path chosen is optimal
             score -= 5 * len(capsuleList)
 
-    return -score 
+    return -score
 
 
 class PacmanAgent(Agent):
@@ -95,7 +76,7 @@ class PacmanAgent(Agent):
             return self.moves.pop(0)
         else:
             return Directions.STOP
-    
+
     def astar(self, state):
         """Given a Pacman game state, returns a list of legal moves to solve
         the search layout.
