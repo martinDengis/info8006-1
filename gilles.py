@@ -17,14 +17,13 @@ def key(state):
         tuple(state.getGhostPositions()),
         tuple(state.getCapsules()),
         state.getFood(),
-        # state.getPacmanState().getDirection()
     )
 
 
 def heuristic(state):
     """Computes the heuristic score for a given game state.
 
-    The score is calculated based on the current game score,the distance to
+    The score is calculated based on the current game score, the distance to
     the closest food dot, and the distance to the closest capsule. The number
     of remaining food dots and capsules are also considered.
 
@@ -72,6 +71,7 @@ class PacmanAgent(Agent):
     def get_action(self, state):
         if self.moves is None:
             self.moves = self.astar(state)
+
         if self.moves:
             return self.moves.pop(0)
         else:
@@ -101,7 +101,6 @@ class PacmanAgent(Agent):
             current, path = item
 
             if current.isWin():
-                # print(path)
                 return path
 
             current_key = key(current)
