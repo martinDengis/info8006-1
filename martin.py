@@ -1,5 +1,5 @@
-from pacman_module.util import PriorityQueue, manhattanDistance
 from pacman_module.game import Agent, Directions
+from pacman_module.util import PriorityQueue, manhattanDistance
 
 
 def key(state):
@@ -14,62 +14,63 @@ def key(state):
 
     return (
         state.getPacmanPosition(),
-        tuple(state.getGhostPositions()),
         tuple(state.getCapsules()),
         state.getFood(),
     )
 
 
 def heuristic(state):
-    """ This function should aim at minimizing the remaining cost of the game.
-    => Check remaining_cost estimate"""
-    if state.isWin():
-        return 0  # If the game is won, no remaining cost
+    """Computes the heuristic cost for a given game state.
 
-    if state.isLose():
-        # If game lost, return infinity as heuristic (maximum cost)
-        return float('inf')
+    The cost is calculated as the furthest distance between
+    PacMan and each of the remaining food dots.
 
-    pacman_position = state.getPacmanPosition()
-    food_positions = state.getFood().asList()
+    Arguments:
+        state: a game state. See API or class `pacman.GameState`.
 
-    # Calculate remaining cost : Goal = MINIMIZE remaining cost
-    remaining_cost = (
-        # Eating food dots is undesirable, so we use a positive weight
-        5 * state.getNumFood() +
-        # Eating capsules is desirable, so we use a negative weight
-        -5 * len(state.getCapsules()) +
-        - 1 * to_closest_food_dot(pacman_position, food_positions)
-    )
+    Returns:
+        The maximum distance to a food dot.
+    """
 
-    return remaining_cost
+    pacman_pos = state.getPacmanPosition()
+
+    # Consider food dots
+    food_list = state.getFood().asList()
+    max_dist = 0
+
+    for food_dot in food_list:
+        dist = manhattanDistance(pacman_pos, food_dot)
+        if max_dist < dist:
+            max_dist = dist
+
+    return max_dist
 
 
-def to_closest_food_dot(pacman_position: tuple, food_positions: list):
-    if not food_positions:
-        return 0
+def action_cost(state, next_state):
+    """Computes the cost for moving from a given GameState to another GameState.
+    
+    This cost is established based on the scoring rules as follows:
+        +1 for a time step
+        +5 for eating a capsule
 
-    if len(food_positions) == 1:
-        return manhattanDistance(pacman_position, food_positions[0])
+    Arguments:
+        state: the current game state. See API or class `pacman.GameState`.
+        next_state: the next game state. See API or class `pacman.GameState`.
 
-    min_distance = float('inf')
-    min_index = 0
-    for i, item in enumerate(food_positions):
-        dist = manhattanDistance(pacman_position, item)
-        if dist < min_distance:
-            min_distance = dist
-            min_index = i
+    Returns:
+        The g cost for the next game state
+    """
 
-    new_pacman_pos = food_positions.pop(min_index)
-    return min_distance + to_closest_food_dot(new_pacman_pos, food_positions)
+    if len(state.getCapsules()) != len(next_state.getCapsules()):
+        return 6    # Time cost (+1) + Eaten capsule (+5)
+    
+    return 1    # Time cost (+1)
 
 
 class PacmanAgent(Agent):
-    """Pacman agent based on A star (A*) algorithm."""
-
+    """Pacman agent based on A star search (A*)."""
     def __init__(self):
         super().__init__()
-
         self.moves = None
 
     def get_action(self, state):
@@ -78,19 +79,19 @@ class PacmanAgent(Agent):
         Arguments:
             state: a game state. See API or class `pacman.GameState`.
 
-        Returns:
+        Return:
             A legal move as defined in `game.Directions`.
         """
 
         if self.moves is None:
-            self.moves = self.a_star(state)
+            self.moves = self.astar(state)
 
         if self.moves:
             return self.moves.pop(0)
         else:
             return Directions.STOP
 
-    def a_star(self, state):
+    def astar(self, state):
         """Given a Pacman game state, returns a list of legal moves to solve
         the search layout.
 
@@ -103,18 +104,16 @@ class PacmanAgent(Agent):
 
         path = []
         fringe = PriorityQueue()
-        fringe.push((state, path), heuristic(state))
+        fringe.push((state, path, 0), heuristic(state))
         closed = set()
 
         while True:
             if fringe.isEmpty():
                 return []
 
-            priority, item = fringe.pop()
-            current, path = item
+            _, (current, path, curr_g_cost) = fringe.pop()
 
             if current.isWin():
-                # print(path)
                 return path
 
             current_key = key(current)
@@ -125,12 +124,12 @@ class PacmanAgent(Agent):
                 closed.add(current_key)
 
             for successor, action in current.generatePacmanSuccessors():
-                g_cost = len(path) + 1
+                g_cost = curr_g_cost + action_cost(current, successor)
 
                 # Evaluation function f(n) = g(n) + h(n)
                 f_cost = g_cost + heuristic(successor)
 
-                # Pushing into priority queue a tuple (state, path) and f_cost
-                fringe.push((successor, path + [action]), f_cost)
+                # Pushing into fringe a tuple (state, path, g_cost) and f_cost
+                fringe.push((successor, path + [action], g_cost), f_cost)
 
         return path
