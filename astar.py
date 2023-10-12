@@ -14,61 +14,54 @@ def key(state):
 
     return (
         state.getPacmanPosition(),
-        tuple(state.getGhostPositions()),
         tuple(state.getCapsules()),
         state.getFood(),
     )
 
 
 def heuristic(state):
-    """Computes the heuristic score for a given game state.
+    """Computes the heuristic cost for a given game state.
 
-    The score is calculated based on the current game score, the distance to
-    the closest food dot, and the distance to the closest capsule. The number
-    of remaining food dots and capsules are also considered.
+    The cost is calculated as the furthest distance between
+    PacMan and each of the remaining food dots.
 
     Arguments:
-        state: The current game state.
+        state: a game state. See API or class `pacman.GameState`.
 
     Returns:
-        The negative of the calculated score. A higher score is better.
+        The maximum distance to a food dot.
     """
 
-    score = state.getScore()
-    pos = state.getPacmanPosition()
+    pacman_pos = state.getPacmanPosition()
 
     # Consider food dots
-    foodList = state.getFood().asList()
-    closestFoodDist = float('inf')
+    food_list = state.getFood().asList()
+    max_dist = 0
 
-    if foodList:
-        # Find distance to closest food dot based on the Manhattan Distance
-        closestFoodDist = min(
-            [manhattanDistance(pos, food) for food in foodList]
-            )
-        score += 10 * len(foodList)
+    for food_dot in food_list:
+        dist = manhattanDistance(pacman_pos, food_dot)
+        if max_dist < dist:
+            max_dist = dist
 
-    # Consider capsules
-    capsuleList = state.getCapsules()
-    if capsuleList:
-        # Find distance to closest capsule based on the Manhattan Distance
-        closestCapsuleDist = min(
-            [manhattanDistance(pos, capsule) for capsule in capsuleList]
-        )
-        # Check if a capsule is on the shortest path to the nearest food dot
-        if closestCapsuleDist <= closestFoodDist:
-            # Reduce the score to make sure the final path chosen is optimal
-            score -= 5 * len(capsuleList)
-
-    return -score
+    return max_dist
 
 
 class PacmanAgent(Agent):
+    """Pacman agent based on A star search (A*)."""
     def __init__(self):
         super().__init__()
         self.moves = None
 
     def get_action(self, state):
+        """Given a Pacman game state, returns a legal move.
+
+        Arguments:
+            state: a game state. See API or class `pacman.GameState`.
+
+        Return:
+            A legal move as defined in `game.Directions`.
+        """
+
         if self.moves is None:
             self.moves = self.astar(state)
 
@@ -90,15 +83,15 @@ class PacmanAgent(Agent):
 
         path = []
         fringe = PriorityQueue()
-        fringe.push((state, path), heuristic(state))
+        fringe.push((state, path, 0), heuristic(state))
         closed = set()
 
         while True:
             if fringe.isEmpty():
                 return []
 
-            priority, item = fringe.pop()
-            current, path = item
+            _, (current, path, curr_g_cost) = fringe.pop()
+            cap_number = len(current.getCapsules())
 
             if current.isWin():
                 return path
@@ -111,12 +104,19 @@ class PacmanAgent(Agent):
                 closed.add(current_key)
 
             for successor, action in current.generatePacmanSuccessors():
-                g_cost = len(path) + 1
+
+                # Updating g_cost
+                if cap_number > len(successor.getCapsules()):
+                    # Time cost (+1) + Eaten capsule (+5)
+                    g_cost = curr_g_cost + 6
+                else:
+                    # Time cost (+1)
+                    g_cost = curr_g_cost + 1
 
                 # Evaluation function f(n) = g(n) + h(n)
                 f_cost = g_cost + heuristic(successor)
 
-                # Pushing into priority queue a tuple (state, path) and f_cost
-                fringe.push((successor, path + [action]), f_cost)
+                # Pushing into fringe a tuple (state, path, g_cost) and f_cost
+                fringe.push((successor, path + [action], g_cost), f_cost)
 
         return path
