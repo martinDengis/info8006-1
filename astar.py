@@ -48,7 +48,7 @@ def heuristic(state):
 
 class PacmanAgent(Agent):
     """Pacman agent based on A star search (A*)."""
-    
+
     def __init__(self):
         super().__init__()
         self.moves = None
