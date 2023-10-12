@@ -46,27 +46,6 @@ def heuristic(state):
     return max_dist
 
 
-def action_cost(state, next_state):
-    """Computes the cost for moving from a given GameState to another GameState.
-    
-    This cost is established based on the scoring rules as follows:
-        +1 for a time step
-        +5 for eating a capsule
-
-    Arguments:
-        state: the current game state. See API or class `pacman.GameState`.
-        next_state: the next game state. See API or class `pacman.GameState`.
-
-    Returns:
-        The g cost for the next game state
-    """
-
-    if len(state.getCapsules()) != len(next_state.getCapsules()):
-        return 6    # Time cost (+1) + Eaten capsule (+5)
-    
-    return 1    # Time cost (+1)
-
-
 class PacmanAgent(Agent):
     """Pacman agent based on A star search (A*)."""
     def __init__(self):
@@ -112,6 +91,7 @@ class PacmanAgent(Agent):
                 return []
 
             _, (current, path, curr_g_cost) = fringe.pop()
+            cap_number = len(current.getCapsules())
 
             if current.isWin():
                 return path
@@ -124,7 +104,14 @@ class PacmanAgent(Agent):
                 closed.add(current_key)
 
             for successor, action in current.generatePacmanSuccessors():
-                g_cost = curr_g_cost + action_cost(current, successor)
+
+                # Updating g_cost
+                if cap_number > len(successor.getCapsules()):
+                    # Time cost (+1) + Eaten capsule (+5)
+                    g_cost = curr_g_cost + 6
+                else:
+                    # Time cost (+1)
+                    g_cost = curr_g_cost + 1
 
                 # Evaluation function f(n) = g(n) + h(n)
                 f_cost = g_cost + heuristic(successor)
